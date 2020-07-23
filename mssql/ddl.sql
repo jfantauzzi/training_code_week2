@@ -11,7 +11,7 @@ go
 create schema Pizza; --namespace -- ~mkdir pizza
 go
 
---constraints = datatype, key, default, check, null, ?
+--constraints = datatype, key, default, check, null, computed
 --number datatypes = tinyint (int8), smallint (int16), int (int32), bigint (int64), numeric, decimal
 --text datatypes = text, ntext, varchar, ***nvarchar (utf-8), char (ascii), nchar(utf-8)
 --datetime datatypes = date, time, datetime, datetime2
@@ -19,35 +19,74 @@ go
 
 create table Pizza.Pizza -- ~touch pizza/pizza
 (
-  PizzaId int not null, --primary key (not recommended),
-  Name nvarchar(250) not null,
+  PizzaId int not null primary key --(not recommended, least common approach)
+  CrustId int null foreign key references Pizza.Crust(CrustId),
+  SizeId int null,
+  [Name] nvarchar(250) not null,
   DateModified datetime2(0) not null,
-  IsValid bit not null,
-  constraint PK_PizzaId (PizzaId) primary key
+  Active bit not null default 1,
+  constraint Size foreign key references Pizza.Size(SizeId)
 );
 
 create table Pizza.Crust
 (
   CrustId int not null,
-  constraint PK_CrustId (CrustId) primary key
-
+  --constraint PK_CrustId (CrustId) primary key,
+  [Name] nvarchar(100) not null,
+  Active bit not null,
+  constraint CrustId primary key,
+  constraint Active default 1
 );
 
 create table Pizza.Size
 (
   SizeId int not null,
-  constraint PK_SizeId (SizeId) primary key
+  [Name] nvarchar(100) not null,
+  Active bit not null
 );
 
 create table Pizza.Topping
 (
-ToppingId int not null,
-constraint PK_ToppingId (ToppingId) primary key
+  ToppingId int not null,
+  --PizzaId int not null,
+  [Name] nvarchar(100) not null,
+  Active bit not null
 );
 
+create table Pizza.PizzaTopping --Associative table (solves issue of only being able to have one topping at a time)
+{
+  PizzaToppingId int not null
+  PizzaId int not null,
+  ToppingId int not null,
+  Active bit not null
+};
+go
 
 -- ALTER
+alter table Pizza.Size
+  add constraint PK_Size_SizeId SizeId primary key
+
+alter table Pizza.Topping
+  add constraint PK_Topping_ToppingId ToppingId primary key
+
+alter table Pizza.PizzaTopping
+  add constraint PK_PizzaTopping_PizzaToppingId PizzaToppingId primary key
+
+alter table Pizza.PizzaTopping
+  add constraint PK_PizzaTopping_PizzaId PizzaId foreign key references Pizza.Pizza(PizzaId)
+
+alter table Pizza.PizzaTopping
+  add constraint PK_PizzaTopping_ToppingId ToppingId foreign key references Pizza.Topping(ToppingId)
+
+go
 
 -- DROP
+-- replication, backup (full differential, incremental), failover
+drop table Pizza.Pizza;
+drop schema Pizza;
+drop database PizzaStoreDb; -- development
 
 -- TRUNCATE
+truncate table Pizza.Pizza;
+truncate schema Pizza;
+truncate database PizzaStoreDb;
